@@ -2,7 +2,9 @@ import sqlite3
 
 
 class Handler:
-    def __init__(self, database="chainmapper.sql"):
+    """Handles all SQLite connections required to create, update, and export the stored addresses."""
+
+    def __init__(self, database="chainmapper.sqlite3"):
         self.database = database
         # Notably `connect` automatically creates the database if it doesn't already exist
         self.con = sqlite3.connect(self.database)
@@ -37,6 +39,6 @@ class Handler:
         )
         self.con.commit()
 
-    def get_ordered(self):
-        # TODO: return addresses in descending order (based on `total_tx_count`)
+    def export(self):
+        # TODO: handle exporting
         pass
