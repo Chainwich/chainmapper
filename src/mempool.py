@@ -4,18 +4,23 @@ import threading
 import logging
 import websockets
 
-from const import WS_ADDR
+from const import WS_ADDR, SUB_MSG
 
 
 class WebSocketThread(threading.Thread):
-    def __init__(self, q, shutdown_event):
+    def __init__(self, q, shutdown_event, sub_msg=SUB_MSG):
         super().__init__()
         self.q = q
         self.shutdown_event = shutdown_event
+        self.sub_msg = sub_msg
         self.tx_count = 0
 
     async def connect(self):
         async with websockets.connect(WS_ADDR) as ws:
+            logging.info("WebSocket connection established successfully")
+            await ws.send(self.sub_msg)
+            logging.info("Subscription message sent")
+
             while not self.shutdown_event.is_set():
                 try:
                     msg = await ws.recv()
