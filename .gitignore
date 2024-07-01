@@ -163,3 +163,9 @@ cython_debug/
 
 # MacOS shit
 .DS_Store
+
+# Development database
+chainmapper.sqlite3
+
+# TODOs/tasks
+TASKS.md
