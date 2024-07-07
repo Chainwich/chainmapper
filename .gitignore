@@ -166,6 +166,7 @@ cython_debug/
 
 # Development database
 chainmapper.sqlite3
+export.json
 
 # TODOs/tasks
 TASKS.md

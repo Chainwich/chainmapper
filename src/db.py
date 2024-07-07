@@ -70,9 +70,21 @@ class Handler:
         logging.info("Data exported to '%s'", filename)
 
 
-async def periodic_export(handler, interval):
-    logging.info("Scheduled export task created")
+def periodic_export(loop, handler, interval, shutdown_event):
+    async def task(handler, interval, shutdown_event):
+        logging.info("Scheduled export task initialized")
 
-    while True:
-        await asyncio.sleep(interval)
-        await handler.export()
+        # Checks the shutdown_event every 5 seconds
+        check_interval = 5
+        elapsed = 0
+
+        while not shutdown_event.is_set():
+            await asyncio.sleep(check_interval)
+            elapsed += check_interval
+
+            if elapsed >= interval:
+                await handler.export()
+                elapsed = 0
+
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(task(handler, interval, shutdown_event))
