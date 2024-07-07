@@ -4,6 +4,7 @@ import os
 import asyncio
 import threading
 import logging
+import signal
 import aioprocessing
 from dotenv import load_dotenv
 
@@ -89,16 +90,28 @@ def main():
     ws_thread.start()
     qp_thread.start()
 
-    try:
-        ws_thread.join()
-        qp_thread.join()
-    except KeyboardInterrupt:
-        logging.info("Keyboard interrupt received, shutting down threads.")
+    def handle_exit():
+        logging.info("Shutdown procedure initialized")
         shutdown_event.set()
         shutdown_loop.run_until_complete(shutdown(shutdown_loop))
         ws_thread.join()
         qp_thread.join()
         export_thread.join()
+
+    def handle_signal(signal, _frame):
+        logging.info("Received signal '%s', shutting down...", signal)
+        handle_exit()
+
+    # SIGINT and SIGTERM signal handler (mainly for Docker)
+    signal.signal(signal.SIGINT, handle_signal)
+    signal.signal(signal.SIGTERM, handle_signal)
+
+    try:
+        ws_thread.join()
+        qp_thread.join()
+    except KeyboardInterrupt:
+        logging.info("Keyboard interrupt received, shutting down threads.")
+        handle_exit()
     finally:
         export_loop.stop()
         export_loop.close()
