@@ -3,6 +3,8 @@ import json
 import logging
 import asyncio
 
+from src.const import DEFAULT_EXPORT_PATH
+
 
 class Handler:
     """Handle all SQLite connections required to create, update, and export the stored addresses."""
@@ -46,11 +48,11 @@ class Handler:
         )
         self.con.commit()
 
-    async def export(self, filename="export.json"):
+    async def export(self, filepath=DEFAULT_EXPORT_PATH):
         """Export the addresses from the SQLite database in descending order based on the transaction counts."""
-        await asyncio.to_thread(self._export, filename)
+        await asyncio.to_thread(self._export, filepath)
 
-    def _export(self, filename="export.json"):
+    def _export(self, filepath):
         self.cursor.execute(
             """
             SELECT address, total_tx_count
@@ -62,12 +64,12 @@ class Handler:
         data = [{"address": record[0], "tx_count": record[1]} for record in records]
         data_json = json.dumps(data, indent=4)
 
-        logging.info("Exporting the database's current state to '%s' (overwriting if an old copy exists)...", filename)
+        logging.info("Exporting the database's current state to '%s' (overwriting if an old copy exists)...", filepath)
 
-        with open(filename, "w", encoding="utf-8") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(data_json)
 
-        logging.info("Data exported to '%s'", filename)
+        logging.info("Data exported to '%s'", filepath)
 
 
 def periodic_export(loop, handler, interval, shutdown_event):
