@@ -20,4 +20,4 @@ then
 fi
 
 echo -e "\n[+] Deploying the container with 'docker run' ('data' as the volume)..."
-docker run -it -v ./data:/app/data --name chainmapper-prod -d chainmapper
+docker run -it --restart unless-stopped -v ./data:/app/data --name chainmapper-prod -d chainmapper
