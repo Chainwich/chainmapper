@@ -4,7 +4,7 @@ import threading
 import logging
 import websockets
 
-from src.const import WS_ADDR, SUB_MSG
+from src.const import WS_ADDR, SUB_MSG, WS_RECONNECT_PAUSE
 
 
 class WebSocketThread(threading.Thread):
@@ -26,6 +26,7 @@ class WebSocketThread(threading.Thread):
 
             # Ignores the confirmation message, as it can't be parsed with the same template
             _ = await ws.recv()
+            logging.info("Confirmation received, ready to receive the TX data")
 
             while not self.shutdown_event.is_set():
                 try:
@@ -37,8 +38,11 @@ class WebSocketThread(threading.Thread):
 
                     await self.q.coro_put(data)
                 except websockets.exceptions.ConnectionClosed:
-                    logging.info("WebSocket connection closed")
-                    self.shutdown_event.set()
+                    logging.info(
+                        "WebSocket connection closed unexpectedly, sleeping for %d seconds before rebooting the connection",
+                        WS_RECONNECT_PAUSE,
+                    )
+                    await asyncio.sleep(WS_RECONNECT_PAUSE)
                     break
                 # pylint: disable=broad-exception-caught
                 except Exception as e:
@@ -68,7 +72,10 @@ class WebSocketThread(threading.Thread):
         asyncio.set_event_loop(loop)
 
         try:
-            loop.run_until_complete(self.connect())
+            while not self.shutdown_event.is_set():
+                # If the connection drops here, rebooting is attempted (unless error is returned)
+                logging.info("Connecting to the WebSocket")
+                loop.run_until_complete(self.connect())
         # pylint: disable=broad-exception-caught
         except Exception as e:
             logging.error("WebSocket thread crashed: %s", str(e))
