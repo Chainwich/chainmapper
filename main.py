@@ -8,6 +8,7 @@ import signal
 import aioprocessing
 from dotenv import load_dotenv
 
+from src.const import DEFAULT_EXPORT_INTERVAL, DEFAULT_MODE
 from src.mempool import WebSocketThread, QueueProcessor
 from src.db import Handler, periodic_export
 
@@ -42,10 +43,10 @@ def load_cfg(dotenv_path=".env"):
     cfg["EXPORT_INTERVAL"] = os.getenv("EXPORT_INTERVAL")
 
     if cfg["MODE"] is None:
-        cfg["MODE"] = "production"
+        cfg["MODE"] = DEFAULT_MODE
 
     if cfg["EXPORT_INTERVAL"] is None:
-        cfg["EXPORT_INTERVAL"] = 24 * 60 * 60  # 24 hours in seconds
+        cfg["EXPORT_INTERVAL"] = DEFAULT_EXPORT_INTERVAL
     else:
         cfg["EXPORT_INTERVAL"] = int(cfg["EXPORT_INTERVAL"])
 
