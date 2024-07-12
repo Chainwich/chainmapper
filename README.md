@@ -14,7 +14,7 @@ touch .env && echo -e "MODE=\"development\"\nEXPORT_INTERVAL=\"60\"" > .env # 60
 
 ## Usage
 
-The included `usage.sh` shellscript should be used for any kind of (development or production) deployment. It builds a new Docker image without caching, prompts for removal of any possible conflicting containers, and finally deploys the newly built image as a container with the `data/` local directory mounted as a volume.
+The included `deploy.sh` shellscript should be used for any kind of (development or production) deployment. It builds a new Docker image without caching, prompts for removal of any possible conflicting containers, and finally deploys the newly built image as a container with the `data/` local directory mounted as a volume.
 
 ```shell
 chmod +x ./scripts/deploy.sh
