@@ -1,6 +1,7 @@
 import sqlite3
 import json
 import logging
+import threading
 import asyncio
 
 from src.const import DEFAULT_EXPORT_PATH
@@ -14,6 +15,7 @@ class Handler:
         # Notably `connect` automatically creates the database if it doesn't already exist
         self.con = sqlite3.connect(self.database, check_same_thread=False)
         self.cursor = self.con.cursor()
+        self.lock = threading.RLock()
 
         # Initialize the table if necessary
         self.cursor.execute(
@@ -31,7 +33,9 @@ class Handler:
 
     async def store(self, address):
         """Store a new address into the SQLite database, or increments the counter by one if the given address already exists in the database."""
-        await asyncio.to_thread(self._store, address)
+        with self.lock:
+            logging.debug("Reentrant lock acquired")
+            await asyncio.to_thread(self._store, address)
 
     def _store(self, address):
         self.cursor.execute(
@@ -50,7 +54,9 @@ class Handler:
 
     async def export(self, filepath=DEFAULT_EXPORT_PATH):
         """Export the addresses from the SQLite database in descending order based on the transaction counts."""
-        await asyncio.to_thread(self._export, filepath)
+        with self.lock:
+            logging.debug("Reentrant lock acquired")
+            await asyncio.to_thread(self._export, filepath)
 
     def _export(self, filepath):
         self.cursor.execute(
@@ -87,6 +93,8 @@ def periodic_export(loop, handler, interval, shutdown_event):
             if elapsed >= interval:
                 await handler.export()
                 elapsed = 0
+
+        logging.info("Periodic export thread quitting")
 
     asyncio.set_event_loop(loop)
     loop.run_until_complete(task(handler, interval, shutdown_event))

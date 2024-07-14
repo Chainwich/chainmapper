@@ -4,7 +4,7 @@ import threading
 import logging
 import websockets
 
-from src.const import WS_ADDR, SUB_MSG, WS_RECONNECT_PAUSE
+from src.const import WS_ADDR, SUB_MSG, WS_RECONNECT_PAUSE, WS_INTERMSG_TIMEOUT
 
 
 class WebSocketThread(threading.Thread):
@@ -20,6 +20,8 @@ class WebSocketThread(threading.Thread):
 
     async def connect(self):
         async with websockets.connect(WS_ADDR) as ws:
+            logging.info("Inter message timeout set to %d seconds", WS_INTERMSG_TIMEOUT)
+
             logging.info("WebSocket connection established successfully")
             await ws.send(self.sub_msg)
             logging.info("Subscription message sent")
@@ -30,13 +32,17 @@ class WebSocketThread(threading.Thread):
 
             while not self.shutdown_event.is_set():
                 try:
-                    msg = await ws.recv()
+                    # Timeout is necessary to make sure the state of the shutdown event is checked often enough
+                    msg = await asyncio.wait_for(ws.recv(), timeout=WS_INTERMSG_TIMEOUT)
                     data = self.handle_msg(msg)
 
                     if data is None:
                         continue
 
                     await self.q.coro_put(data)
+                except asyncio.TimeoutError:
+                    logging.debug("WebSocket receiver timed out before fetching a new message, reattempting")
+                    continue
                 except websockets.exceptions.ConnectionClosed:
                     logging.info(
                         "WebSocket connection closed unexpectedly, sleeping for %d seconds before rebooting the connection",
@@ -49,6 +55,8 @@ class WebSocketThread(threading.Thread):
                     logging.error("WebSocket error: %s", str(e))
                     self.shutdown_event.set()
                     break
+
+        logging.info("WebSocket thread quitting")
 
     def handle_msg(self, msg):
         msg_json = json.loads(msg)
@@ -83,6 +91,8 @@ class WebSocketThread(threading.Thread):
         finally:
             loop.close()
 
+        logging.info("WebSocket thread quitting without attempting to reconnect")
+
 
 class QueueProcessor(threading.Thread):
     """Handle processing of items from the cross-thread queue where the WebSocket thread feeds data into."""
@@ -97,13 +107,19 @@ class QueueProcessor(threading.Thread):
     async def process_queue(self):
         while not self.shutdown_event.is_set():
             try:
-                tx_sender = await self.q.coro_get()  # Waits here until new msg is available
+                # Timeout is necessary to make sure the state of the shutdown event is checked often enough
+                tx_sender = await asyncio.wait_for(self.q.coro_get(), timeout=WS_INTERMSG_TIMEOUT)
                 await self.handler.store(tx_sender)
             # pylint: disable=broad-exception-caught
+            except asyncio.TimeoutError:
+                logging.debug("Queue processor timed out before fetching a new message, reattempting")
+                continue
             except Exception as e:
                 logging.error("QueueProcessor thread crashed: %s", str(e))
                 self.shutdown_event.set()
                 break
+
+        logging.info("Queue processor thread quitting")
 
     def run(self):
         """Start the queue processing thread that'll run until it receives a shutdown message or crashes."""

@@ -75,6 +75,8 @@ def main():
     shutdown_loop = asyncio.new_event_loop()
     export_loop = asyncio.new_event_loop()
 
+    ws_thread = WebSocketThread(q, shutdown_event)
+    qp_thread = QueueProcessor(q, shutdown_event, handler)
     export_thread = threading.Thread(
         target=periodic_export,
         args=(
@@ -84,12 +86,10 @@ def main():
             shutdown_event,
         ),
     )
-    export_thread.start()
 
-    ws_thread = WebSocketThread(q, shutdown_event)
-    qp_thread = QueueProcessor(q, shutdown_event, handler)
     ws_thread.start()
     qp_thread.start()
+    export_thread.start()
 
     def handle_exit():
         logging.info("Shutdown procedure initialized")
@@ -111,13 +111,14 @@ def main():
         ws_thread.join()
         qp_thread.join()
     except KeyboardInterrupt:
-        logging.info("Keyboard interrupt received, shutting down threads.")
+        logging.info("Keyboard interrupt received, shutting down threads")
         handle_exit()
     finally:
         export_loop.stop()
         export_loop.close()
         shutdown_loop.stop()
         shutdown_loop.close()
+        logging.info("Shutdown sequence completed successfully!")
 
 
 if __name__ == "__main__":
