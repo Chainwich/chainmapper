@@ -4,13 +4,13 @@ import logging
 import threading
 import asyncio
 
-from src.const import DEFAULT_EXPORT_PATH
+from src.const import DEFAULT_DB_PATH, DEFAULT_EXPORT_PATH
 
 
 class Handler:
     """Handle all SQLite connections required to create, update, and export the stored addresses."""
 
-    def __init__(self, database="chainmapper.sqlite3"):
+    def __init__(self, database=DEFAULT_DB_PATH):
         self.database = database
         # Notably `connect` automatically creates the database if it doesn't already exist
         self.con = sqlite3.connect(self.database, check_same_thread=False)
@@ -78,7 +78,9 @@ class Handler:
         logging.info("Data exported to '%s'", filepath)
 
 
-def periodic_export(loop, handler, interval, shutdown_event):
+def periodic_export(loop, handler, interval, is_export, shutdown_event):
+    """Create a task that exports the internal database based on `interval` (seconds) until `shutdown_event` is set"""
+
     async def task(handler, interval, shutdown_event):
         logging.info("Scheduled export task initialized")
 
@@ -96,5 +98,6 @@ def periodic_export(loop, handler, interval, shutdown_event):
 
         logging.info("Periodic export thread quitting")
 
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(task(handler, interval, shutdown_event))
+    if is_export:
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(task(handler, interval, shutdown_event))

@@ -5,16 +5,19 @@ import asyncio
 import threading
 import logging
 import signal
+from collections import namedtuple
 import aioprocessing
 from dotenv import load_dotenv
 
-from src.const import DEFAULT_EXPORT_INTERVAL, DEFAULT_MODE
+from src.const import DEFAULT_MODE, DEFAULT_EXPORT_INTERVAL, DEFAULT_IS_EXPORT
 from src.mempool import WebSocketThread, QueueProcessor
 from src.db import Handler, periodic_export
 
+Config = namedtuple("Config", ["mode", "export_interval", "is_export"])
+
 
 async def shutdown(loop, signal=None):
-    """Cleanup tasks tied to the service's shutdown."""
+    """Run cleanup tasks tied to the service's shutdown."""
     if signal:
         logging.info("Received exit signal %s", signal.name)
 
@@ -34,40 +37,34 @@ async def shutdown(loop, signal=None):
 
 
 def load_cfg(dotenv_path=".env"):
+    """Parse configuration from environment variables located in `dotenv_path` or from defaults."""
     load_dotenv(dotenv_path)
-    cfg = {}
-
     print(f"[+] Environment variables loaded from '{dotenv_path}'\n---")
 
-    cfg["MODE"] = os.getenv("MODE")
-    cfg["EXPORT_INTERVAL"] = os.getenv("EXPORT_INTERVAL")
+    mode = os.getenv("MODE", DEFAULT_MODE).lower()
+    export_interval = int(os.getenv("EXPORT_INTERVAL", DEFAULT_EXPORT_INTERVAL))
+    is_export = os.getenv("IS_EXPORT", DEFAULT_IS_EXPORT).lower() in ("true", "1", "t")
 
-    if cfg["MODE"] is None:
-        cfg["MODE"] = DEFAULT_MODE
-
-    if cfg["EXPORT_INTERVAL"] is None:
-        cfg["EXPORT_INTERVAL"] = DEFAULT_EXPORT_INTERVAL
-    else:
-        cfg["EXPORT_INTERVAL"] = int(cfg["EXPORT_INTERVAL"])
+    cfg = Config(mode, export_interval, is_export)
 
     return cfg
 
 
 def main():
     cfg = load_cfg()
-    mode = cfg["MODE"]
 
-    if mode.lower() == "production":
+    if cfg.mode == "production":
         log_level = logging.INFO
     else:
         log_level = logging.DEBUG
 
     logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", level=log_level)
     logging.info("Logger initialized")
-    logging.info("MODE: %s", cfg["MODE"])
-    logging.info("EXPORT_INTERVAL: %d (seconds)", cfg["EXPORT_INTERVAL"])
+    logging.info("MODE: %s", cfg.mode)
+    logging.info("EXPORT_INTERVAL: %d (seconds)", cfg.export_interval)
+    logging.info("IS_EXPORT: %r", cfg.is_export)
 
-    # FIFO queue for crosst-thread communications
+    # FIFO queue for cross-thread communications
     q = aioprocessing.AioQueue()
     handler = Handler()
     shutdown_event = threading.Event()
@@ -77,12 +74,14 @@ def main():
 
     ws_thread = WebSocketThread(q, shutdown_event)
     qp_thread = QueueProcessor(q, shutdown_event, handler)
+
     export_thread = threading.Thread(
         target=periodic_export,
         args=(
             export_loop,
             handler,
-            cfg["EXPORT_INTERVAL"],
+            cfg.export_interval,
+            cfg.is_export,
             shutdown_event,
         ),
     )
@@ -116,8 +115,12 @@ def main():
     finally:
         export_loop.stop()
         export_loop.close()
+        logging.info("Export loop shut down")
+
         shutdown_loop.stop()
         shutdown_loop.close()
+        logging.info("Shutdown loop shut down")
+
         logging.info("Shutdown sequence completed successfully!")
 
 
