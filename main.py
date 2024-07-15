@@ -9,7 +9,7 @@ from collections import namedtuple
 import aioprocessing
 from dotenv import load_dotenv
 
-from src.const import DEFAULT_MODE, DEFAULT_EXPORT_INTERVAL, DEFAULT_IS_EXPORT
+from src.const import DEFAULT_MODE, DEFAULT_EXPORT_INTERVAL, DEFAULT_IS_EXPORT, VERSION
 from src.mempool import WebSocketThread, QueueProcessor
 from src.db import Handler, periodic_export
 
@@ -60,6 +60,7 @@ def main():
 
     logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", level=log_level)
     logging.info("Logger initialized")
+    logging.info("Currently running version %s", VERSION)
     logging.info("MODE: %s", cfg.mode)
     logging.info("EXPORT_INTERVAL: %d (seconds)", cfg.export_interval)
     logging.info("IS_EXPORT: %r", cfg.is_export)

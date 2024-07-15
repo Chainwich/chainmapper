@@ -1,5 +1,7 @@
 import json
 
+VERSION = "v1.1.0"
+
 # Blockchain.com endpoint and the subscription message which initializes the "transaction stream"
 WS_ADDR = "wss://ws.blockchain.info/coins"
 # Optionally `confirmed_transaction` can be used (bursts of data instead of a steady stream, which is worse for the overall performance)
