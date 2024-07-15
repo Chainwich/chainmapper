@@ -14,8 +14,6 @@ A list of the possible environment variables and their purpose:
 
 ## Development
 
-Most critically `MODE=development` should be specified, as it sets the logging level from `INFO` to `DEBUG`. Low `EXPORT_INTERVAL` should be used for testing the export functionality (obviously).
-
 ```shell
 mkvirtualenv chainmapper # OR 'workon chainmapper'
 pip3 install -r requirements.txt
