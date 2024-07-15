@@ -2,6 +2,16 @@
 
 Script that, once deployed in a Docker container, monitors a live feed of the Ethereum network via a WebSocket connection, stores the sender addresses with transaction counts, and creates statistics of the most active addresses.
 
+## Configuration
+
+A list of the possible environment variables and their purpose:
+
+- `MODE`: Either `development` or `production`, the logging level is set based on this
+- `EXPORT_INTERVAL`: The interval of how often the SQLite database is exported as a JSON file, does nothing if `IS_EXPORT` is not true
+  - Notably set as a string (similar to all environment variables)
+- `IS_EXPORT`: Boolean that indicates whether the aforementioned export task is enabled or not
+  - Possible values that are interpreted as `True` (case insensitive): `true`, `1`, and `t`
+
 ## Development
 
 Most critically `MODE=development` should be specified, as it sets the logging level from `INFO` to `DEBUG`. Low `EXPORT_INTERVAL` should be used for testing the export functionality (obviously).
@@ -9,7 +19,7 @@ Most critically `MODE=development` should be specified, as it sets the logging l
 ```shell
 mkvirtualenv chainmapper # OR 'workon chainmapper'
 pip3 install -r requirements.txt
-touch .env && echo -e "MODE=\"development\"\nEXPORT_INTERVAL=\"60\"" > .env # 60 seconds export period for testing
+touch .env # Optional, see the previous section
 ```
 
 ## Usage
