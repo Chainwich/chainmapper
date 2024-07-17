@@ -10,12 +10,6 @@ SUB_MSG = json.dumps({"coin": "eth", "command": "subscribe", "entity": "pending_
 # Pause before reconnecting after the WebSocket connection is accidentally dropped by either party
 WS_RECONNECT_PAUSE = 2
 
-# Timeout for asynchronous WebSocket reading (seconds)
-WS_INTERMSG_TIMEOUT = 1
-
-# Timeout for asynchronous queue operations (`coro_get` and `coro_put`, seconds)
-QUEUE_OP_TIMEOUT = 1
-
 # Paths inside the Docker container where data is stored/exported (should match with the mounted volume in `deploy.sh`)
 DEFAULT_DB_PATH = "./data/chainmapper.sqlite3"
 DEFAULT_EXPORT_PATH = "./data/export.json"

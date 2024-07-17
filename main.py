@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import asyncio
 import threading
 import logging
 import signal
 from collections import namedtuple
+import sqlite3
 import aioprocessing
+import websockets
 from dotenv import load_dotenv
 
 from src.const import DEFAULT_MODE, DEFAULT_EXPORT_INTERVAL, DEFAULT_IS_EXPORT, VERSION
@@ -65,6 +68,12 @@ def main():
     logging.info("EXPORT_INTERVAL: %d (seconds)", cfg.export_interval)
     logging.info("IS_EXPORT: %r", cfg.is_export)
 
+    # Information for debugging issues caused by potential version differences
+    logging.info("Python version: %s", sys.version)
+    logging.info("aioprocessing version: %s", aioprocessing.__version__)
+    logging.info("websockets version: %s", websockets.__version__)
+    logging.info("sqlite3 version: %s", sqlite3.version)
+
     # FIFO queue for cross-thread communications
     q = aioprocessing.AioQueue()
     handler = Handler()
@@ -93,10 +102,13 @@ def main():
 
     def handle_exit():
         logging.info("Shutdown procedure initialized")
+
         shutdown_event.set()
         shutdown_loop.run_until_complete(shutdown(shutdown_loop))
-        ws_thread.join()
+
+        # NOTE: It's vital to close the queue processor first so that it doesn't halt the shutdown
         qp_thread.join()
+        ws_thread.join()
         export_thread.join()
 
     def handle_signal(signal, _frame):
@@ -108,8 +120,8 @@ def main():
     signal.signal(signal.SIGTERM, handle_signal)
 
     try:
-        ws_thread.join()
         qp_thread.join()
+        ws_thread.join()
     except KeyboardInterrupt:
         logging.info("Keyboard interrupt received, shutting down threads")
         handle_exit()

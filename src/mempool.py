@@ -4,7 +4,7 @@ import threading
 import logging
 import websockets
 
-from src.const import WS_ADDR, SUB_MSG, WS_RECONNECT_PAUSE, WS_INTERMSG_TIMEOUT, QUEUE_OP_TIMEOUT
+from src.const import WS_ADDR, SUB_MSG, WS_RECONNECT_PAUSE
 
 
 class WebSocketThread(threading.Thread):
@@ -20,8 +20,6 @@ class WebSocketThread(threading.Thread):
 
     async def connect(self):
         async with websockets.connect(WS_ADDR) as ws:
-            logging.info("Inter message timeout set to %d seconds", WS_INTERMSG_TIMEOUT)
-
             logging.info("WebSocket connection established successfully")
             await ws.send(self.sub_msg)
             logging.info("Subscription message sent")
@@ -32,15 +30,13 @@ class WebSocketThread(threading.Thread):
 
             while not self.shutdown_event.is_set():
                 try:
-                    # Timeout is necessary to make sure the state of the shutdown event is checked often enough
-                    msg = await asyncio.wait_for(ws.recv(), timeout=WS_INTERMSG_TIMEOUT)
+                    msg = await ws.recv()
                     data = self.handle_msg(msg)
 
                     if data is None:
                         continue
 
-                    # This shouldn't really be an issue, but it's safer to set a timeout here too...
-                    await asyncio.wait_for(self.q.coro_put(data), timeout=QUEUE_OP_TIMEOUT)
+                    await self.q.coro_put(data)
                 except asyncio.TimeoutError:
                     logging.debug("WebSocket receiver timed out before fetching a new message, reattempting")
                     continue
@@ -104,12 +100,10 @@ class QueueProcessor(threading.Thread):
         self.handler = handler
 
     async def process_queue(self):
-        logging.info("Queue operations timeout set to %d seconds", QUEUE_OP_TIMEOUT)
-
         while not self.shutdown_event.is_set():
             try:
-                # Timeout is necessary to make sure the state of the shutdown event is checked often enough
-                tx_sender = await asyncio.wait_for(self.q.coro_get(), timeout=QUEUE_OP_TIMEOUT)
+                # Might prevent a proper shutdown procedure if the queue feeder is closed before the processor
+                tx_sender = await self.q.coro_get()
                 await self.handler.store(tx_sender)
             # pylint: disable=broad-exception-caught
             except asyncio.TimeoutError:
