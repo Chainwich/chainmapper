@@ -2,7 +2,7 @@
 
 # Included into the built image via its Dockerfile
 
-DB_FILE="/app/chainmapper.sqlite3"
+DB_FILE="/app/data/chainmapper.sqlite3"
 
 if [ -s $DB_FILE ]; then
     exit 0
