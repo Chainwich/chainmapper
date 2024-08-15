@@ -26,5 +26,13 @@ The included `deploy.sh` shellscript should be used for any kind of (development
 
 ```shell
 chmod +x ./scripts/deploy.sh
+# Add `-y` flag to automatically overwrite existing containers with the same name
 ./scripts/deploy.sh
+```
+
+Use the following command if you wish to proxy the WebSocket connection:
+
+```shell
+# Proxy format: <protocol>://<ip>:<port>
+./scripts/deploy.sh -p <proxy>
 ```
