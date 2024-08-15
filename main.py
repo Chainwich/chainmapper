@@ -52,6 +52,10 @@ def load_cfg(dotenv_path=".env"):
     return cfg
 
 
+def get_ip(addr=const.IP_TEST_ADDR):
+    return requests.get(addr, timeout=10).text.strip()
+
+
 def main():
     cfg = load_cfg()
 
@@ -66,6 +70,7 @@ def main():
     logging.info("MODE: %s", cfg.mode)
     logging.info("EXPORT_INTERVAL: %d (seconds)", cfg.export_interval)
     logging.info("IS_EXPORT: %r", cfg.is_export)
+    logging.info("IP: %s", get_ip())
 
     # Information for debugging issues caused by potential version differences
     logging.info("Python version: %s", sys.version)
