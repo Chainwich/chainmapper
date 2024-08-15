@@ -18,3 +18,5 @@ DEFAULT_EXPORT_PATH = "./data/export.json"
 DEFAULT_MODE = "production"
 DEFAULT_EXPORT_INTERVAL = "10800"
 DEFAULT_IS_EXPORT = "False"
+
+IP_TEST_ADDR = "https://ipv4.icanhazip.com"

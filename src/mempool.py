@@ -4,13 +4,13 @@ import threading
 import logging
 import websockets
 
-from src.const import WS_ADDR, SUB_MSG, WS_RECONNECT_PAUSE
+from src import const
 
 
 class WebSocketThread(threading.Thread):
     """Handle connection, subscription, and message parsing for the Blockchain.com WebSocket."""
 
-    def __init__(self, q, shutdown_event, sub_msg=SUB_MSG):
+    def __init__(self, q, shutdown_event, sub_msg=const.SUB_MSG):
         super().__init__()
         self.name = "WebSocketThread"
         self.q = q
@@ -19,7 +19,7 @@ class WebSocketThread(threading.Thread):
         self.tx_count = 0
 
     async def connect(self):
-        async with websockets.connect(WS_ADDR) as ws:
+        async with websockets.connect(const.WS_ADDR) as ws:
             logging.info("WebSocket connection established successfully")
             await ws.send(self.sub_msg)
             logging.info("Subscription message sent")
@@ -43,9 +43,9 @@ class WebSocketThread(threading.Thread):
                 except websockets.exceptions.ConnectionClosed:
                     logging.info(
                         "WebSocket connection closed unexpectedly, sleeping for %d seconds before rebooting the connection",
-                        WS_RECONNECT_PAUSE,
+                        const.WS_RECONNECT_PAUSE,
                     )
-                    await asyncio.sleep(WS_RECONNECT_PAUSE)
+                    await asyncio.sleep(const.WS_RECONNECT_PAUSE)
                     break
                 # pylint: disable=broad-exception-caught
                 except Exception as e:

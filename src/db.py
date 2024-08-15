@@ -4,13 +4,13 @@ import logging
 import threading
 import asyncio
 
-from src.const import DEFAULT_DB_PATH, DEFAULT_EXPORT_PATH
+from src import const
 
 
 class Handler:
     """Handle all SQLite connections required to create, update, and export the stored addresses."""
 
-    def __init__(self, database=DEFAULT_DB_PATH):
+    def __init__(self, database=const.DEFAULT_DB_PATH):
         self.database = database
         # Notably `connect` automatically creates the database if it doesn't already exist
         self.con = sqlite3.connect(self.database, check_same_thread=False)
@@ -52,7 +52,7 @@ class Handler:
         )
         self.con.commit()
 
-    async def export(self, filepath=DEFAULT_EXPORT_PATH):
+    async def export(self, filepath=const.DEFAULT_EXPORT_PATH):
         """Export the addresses from the SQLite database in descending order based on the transaction counts."""
         with self.lock:
             logging.debug("Reentrant lock acquired")

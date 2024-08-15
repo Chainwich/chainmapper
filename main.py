@@ -11,10 +11,9 @@ import sqlite3
 import aioprocessing
 import websockets
 from dotenv import load_dotenv
+import requests
 
-from src.const import DEFAULT_MODE, DEFAULT_EXPORT_INTERVAL, DEFAULT_IS_EXPORT, VERSION
-from src.mempool import WebSocketThread, QueueProcessor
-from src.db import Handler, periodic_export
+from src import const, mempool, db
 
 Config = namedtuple("Config", ["mode", "export_interval", "is_export"])
 
@@ -44,9 +43,9 @@ def load_cfg(dotenv_path=".env"):
     load_dotenv(dotenv_path)
     print(f"[+] Environment variables loaded from '{dotenv_path}'\n---")
 
-    mode = os.getenv("MODE", DEFAULT_MODE).lower()
-    export_interval = int(os.getenv("EXPORT_INTERVAL", DEFAULT_EXPORT_INTERVAL))
-    is_export = os.getenv("IS_EXPORT", DEFAULT_IS_EXPORT).lower() in ("true", "1", "t")
+    mode = os.getenv("MODE", const.DEFAULT_MODE).lower()
+    export_interval = int(os.getenv("EXPORT_INTERVAL", const.DEFAULT_EXPORT_INTERVAL))
+    is_export = os.getenv("IS_EXPORT", const.DEFAULT_IS_EXPORT).lower() in ("true", "1", "t")
 
     cfg = Config(mode, export_interval, is_export)
 
@@ -63,7 +62,7 @@ def main():
 
     logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", level=log_level)
     logging.info("Logger initialized")
-    logging.info("Currently running version %s", VERSION)
+    logging.info("Currently running version %s", const.VERSION)
     logging.info("MODE: %s", cfg.mode)
     logging.info("EXPORT_INTERVAL: %d (seconds)", cfg.export_interval)
     logging.info("IS_EXPORT: %r", cfg.is_export)
@@ -76,17 +75,17 @@ def main():
 
     # FIFO queue for cross-thread communications
     q = aioprocessing.AioQueue()
-    handler = Handler()
+    handler = db.Handler()
     shutdown_event = threading.Event()
 
     shutdown_loop = asyncio.new_event_loop()
     export_loop = asyncio.new_event_loop()
 
-    ws_thread = WebSocketThread(q, shutdown_event)
-    qp_thread = QueueProcessor(q, shutdown_event, handler)
+    ws_thread = mempool.WebSocketThread(q, shutdown_event)
+    qp_thread = mempool.QueueProcessor(q, shutdown_event, handler)
 
     export_thread = threading.Thread(
-        target=periodic_export,
+        target=db.periodic_export,
         args=(
             export_loop,
             handler,
