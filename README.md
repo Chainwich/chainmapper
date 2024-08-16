@@ -1,6 +1,6 @@
 # Ethereum network sender address mapper
 
-Script that, once deployed in a Docker container, monitors a live feed of the Ethereum network via a WebSocket connection, stores the sender addresses with transaction counts, and creates statistics of the most active addresses.
+This script, designed for deployment in a Docker container, monitors the Ethereum network's mempool via a WebSocket connection. It tracks sender addresses and their transaction counts, generating a list of the most active addresses. This data can be used to black-/whitelist addresses in other research projects, ensuring targeting is done based on up-to-date information.
 
 ## Configuration
 
